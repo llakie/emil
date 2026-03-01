@@ -1,0 +1,114 @@
+{
+  "imap": {
+    "host": "imap.example.com",
+    "port": 993,
+    "secure": true,
+    "user": "your-mail@example.com",
+    "passEnv": "IMAP_PASSWORD",
+    "folder": "INBOX",
+    "startAt": {
+      "type": "minDate",
+      "value": "2026-01-01"
+    },
+    "filter": {
+      "criteria": ["ALL"]
+    },
+    "options": {
+      "maxFetchBytes": 262144
+    },
+    "storage": {
+      "filePath": "./data/imap-state.json"
+    },
+    "idlePollingIntervalMs": 10000
+  },
+  "runtime": {
+    "plugins": ["builtin:classification.spam", "builtin:classification.openai"],
+    "errorPolicy": "stop",
+    "steps": [
+      {
+        "name": "builtin:classification.spam",
+        "config": {
+          "spamHeaders": [],
+          "spamSubjectsPatterns": ["\\*\\*\\*SPAM\\*\\*\\*"],
+          "blockedSenders": [],
+          "blockedDomains": [],
+          "trustedSenders": [],
+          "trustedDomains": [],
+          "authFailPatterns": ["spf=fail", "spf=softfail", "dkim=fail", "dmarc=fail"],
+          "scoring": {
+            "minScore": 80,
+            "weights": {
+              "subjectPattern": 25,
+              "headerPattern": 30,
+              "senderAddress": 45,
+              "senderDomain": 35,
+              "authFail": 60
+            }
+          },
+          "spamFolder": "Spam"
+        }
+      },
+      {
+        "name": "builtin:classification.openai",
+        "config": {
+          "apiKeyEnv": "OPENAI_API_KEY",
+          "model": "gpt-4o-mini",
+          "thresholds": {
+            "minConfidence": 0.75
+          },
+          "limits": {
+            "maxTextChars": 6000,
+            "maxHtmlChars": 6000
+          },
+          "labels": [
+            {
+              "id": "action_required",
+              "prompt": "Requires concrete action from the user.",
+              "folder": "INBOX/ai/001_Aktion"
+            },
+            {
+              "id": "appointments_meetings",
+              "prompt": "Appointments, meetings, invitations or calendar related messages.",
+              "folder": "INBOX/ai/001_Aktion"
+            },
+            {
+              "id": "family_school_kindergarten",
+              "prompt": "Family, school or kindergarten related communication.",
+              "folder": "INBOX/ai/001_Aktion"
+            },
+            {
+              "id": "finances",
+              "prompt": "Invoices, payments, reminders, banking, finance related communication.",
+              "folder": "INBOX/ai/003_Finanzen"
+            },
+            {
+              "id": "contracts_updates",
+              "prompt": "Contract changes or general service updates.",
+              "folder": "INBOX/ai/002_Benachrichtigungen"
+            },
+            {
+              "id": "account_security",
+              "prompt": "Account notifications and security related messages.",
+              "folder": "INBOX/ai/002_Benachrichtigungen"
+            },
+            {
+              "id": "orders_shipping",
+              "prompt": "Orders, shipping, delivery and returns.",
+              "folder": "INBOX/ai/001_Bestellungen"
+            },
+            {
+              "id": "newsletter_advertising",
+              "prompt": "Newsletters and advertising content.",
+              "folder": "INBOX/ai/004_Newsletter"
+            },
+            {
+              "id": "general_inbox",
+              "prompt": "General important communication with no better category fit.",
+              "folder": "INBOX"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
