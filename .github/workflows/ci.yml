@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: |
+          mkdir -p reports
+          npm run test:coverage -- --ci --json --outputFile=reports/jest-results.json
+        env:
+          CI: true
+
+      - name: Write test and coverage summary
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const sum = [];
+          try {
+            const j = JSON.parse(fs.readFileSync('reports/jest-results.json', 'utf8'));
+            sum.push('## Test Results');
+            sum.push(`- Total: ${j.numTotalTests}`);
+            sum.push(`- Passed: ${j.numPassedTests}`);
+            sum.push(`- Failed: ${j.numFailedTests}`);
+            sum.push(`- Skipped: ${j.numPendingTests}`);
+          } catch (e) {
+            sum.push('## Test Results');
+            sum.push('- No jest results found');
+          }
+          if (fs.existsSync('coverage/coverage-summary.json')) {
+            const c = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8')).total;
+            sum.push('');
+            sum.push('## Coverage');
+            sum.push(`- Lines: ${c.lines.pct}%`);
+            sum.push(`- Statements: ${c.statements.pct}%`);
+            sum.push(`- Branches: ${c.branches.pct}%`);
+            sum.push(`- Functions: ${c.functions.pct}%`);
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${sum.join('\n')}\n`);
+          NODE
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-results
+          path: reports/jest-results.json
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage

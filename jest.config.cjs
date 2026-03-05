@@ -9,4 +9,5 @@ module.exports = {
     },
     testMatch: ['**/?(*.)+(test).ts'],
     clearMocks: true,
+    coverageReporters: ['json-summary', 'lcov', 'text'],
 };
