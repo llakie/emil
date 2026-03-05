@@ -5,8 +5,18 @@ export type LogLevel = LevelWithSilent;
 export class Logger {
     private readonly base: PinoLogger;
 
-    constructor(level: LogLevel = (process.env.LOG_LEVEL as LogLevel) || 'info') {
-        const options: LoggerOptions = { level };
+    constructor(level?: LogLevel) {
+        const disablePretty =
+            process.env.NODE_ENV === 'test' || typeof process.env.JEST_WORKER_ID !== 'undefined';
+        const envLevel = process.env.LOG_LEVEL as LogLevel | undefined;
+        const effectiveLevel = level ?? envLevel ?? (disablePretty ? 'silent' : 'info');
+        const options: LoggerOptions = { level: effectiveLevel };
+
+        if (disablePretty) {
+            this.base = pino(options);
+            return;
+        }
+
         const transport = pino.transport({
             target: 'pino-pretty',
             options: {

@@ -77,7 +77,7 @@ docker run --rm -it \
   emil:latest
 ```
 
-Then reference plugin paths in config, for example `"/app/plugins/my-plugin.js"`.
+Then reference plugin paths in config, for example `"/app/plugins/my-plugin.mjs"` (ESM) or `"/app/plugins/my-plugin.cjs"` (CommonJS).
 
 ## 5. Configuration Reference
 
@@ -304,10 +304,23 @@ State resets automatically when:
 
 A plugin module must export `registerProviders(registry)`.
 
-Minimal JS plugin:
+Module formats:
+
+- **ESM**: use `.mjs`, or put a `package.json` with `"type": "module"` next to your plugin so `.js` is treated as ESM.
+- **CommonJS**: use `.cjs` and export via `module.exports` (see example below).
+
+Optional `package.json` next to your plugins (enables `.js` as ESM):
+
+```json
+{
+  "type": "module"
+}
+```
+
+Minimal ESM plugin:
 
 ```js
-// /app/plugins/example-tagger.js
+// /app/plugins/example-tagger.mjs
 export function registerProviders(registry) {
   registry.registerProvider('custom:tagger', async ({ message, imap, logger, stepConfig }) => {
     const flag = typeof stepConfig.flag === 'string' ? stepConfig.flag : '\\\\Flagged';
@@ -318,12 +331,28 @@ export function registerProviders(registry) {
 }
 ```
 
+Minimal CommonJS plugin:
+
+```js
+// /app/plugins/example-tagger.cjs
+module.exports = {
+  registerProviders(registry) {
+    registry.registerProvider('custom:tagger', async ({ message, imap, logger, stepConfig }) => {
+      const flag = typeof stepConfig.flag === 'string' ? stepConfig.flag : '\\\\Flagged';
+      await imap.addFlags(message.uid, [flag]);
+      logger.info(`Tagged UID=${message.uid} with ${flag}`);
+      return 'continue';
+    });
+  }
+};
+```
+
 Enable plugin in config:
 
 ```json
 {
   "runtime": {
-    "plugins": ["/app/plugins/example-tagger.js"],
+    "plugins": ["/app/plugins/example-tagger.mjs"],
     "steps": [
       {
         "name": "custom:tagger",
