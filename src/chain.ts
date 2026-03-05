@@ -1,10 +1,9 @@
-import path from 'path';
-import { pathToFileURL } from 'url';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
     Config,
     ImapNextMessageResult,
     ImapStepClient,
-    RuntimeStepConfig,
     StepProvider,
     StepProviderModule,
     StepProviderRegistry,
@@ -16,7 +15,7 @@ class StepProviderRegistryImpl implements StepProviderRegistry {
     private readonly providers = new Map<string, StepProvider>();
 
     public registerProvider(name: string, provider: StepProvider): void {
-        if (!name || !name.trim()) {
+        if (!name?.trim()) {
             throw new Error('Step provider name must not be empty');
         }
 
@@ -180,4 +179,4 @@ export class Chain {
     }
 }
 
-export type { RuntimeStepConfig };
+export { type RuntimeStepConfig } from './types.js';

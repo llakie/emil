@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import { Imap } from './imap.js';
 import { Config, configSchema } from './types.js';
 import { Logger } from './logger.js';
@@ -89,9 +89,6 @@ async function main() {
             await sleep(retryDelayMs);
             currentErrorBackofMs = Math.min(currentErrorBackofMs * 2, maxErrorBackoffMs);
         }
-
-        // TODO: Nur fürs debugging - Zeile nachher wieder raus
-        // await sleep(config.imap.idlePollingIntervalMs);
     }
 }
 

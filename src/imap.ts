@@ -16,8 +16,8 @@ export class Imap {
     private client: ImapFlow | null = null;
     private inFlightUid: number | null = null;
     private currentUidValidity: bigint = 0n;
-    private logger: Logger;
-    private messageRefRange: MessageRefRange = {
+    private readonly logger: Logger;
+    private readonly messageRefRange: MessageRefRange = {
         startUtcMs: 0,
         endUtcMs: 0,
         sortedMessageUids: null
@@ -105,9 +105,7 @@ export class Imap {
         if (utcDayStartMs() === messageRefRange.startUtcMs) {
             messageRefRange.sortedMessageUids = await this.getSortedMessageUids(client, messageRefRange);
         } else {
-            if (messageRefRange.sortedMessageUids === null) {
-                messageRefRange.sortedMessageUids = await this.getSortedMessageUids(client, messageRefRange);
-            }
+            messageRefRange.sortedMessageUids ??= await this.getSortedMessageUids(client, messageRefRange);
         }
 
         if (messageRefRange.sortedMessageUids.length === 0) {
@@ -197,7 +195,7 @@ export class Imap {
                 date: toUnixMs(message.envelope?.date),
                 internalDate: toUnixMs(message.internalDate),
                 size: message.size,
-                seen: message.flags?.has('\\Seen') ?? false,
+                seen: message.flags?.has(String.raw`\Seen`) ?? false,
                 flags: message.flags ? Array.from(message.flags) : [],
                 text: parsedBody.text,
                 html: parsedBody.html,
@@ -210,6 +208,7 @@ export class Imap {
                     return;
                 }
 
+                this.stateStore.resetAttempt(message.uid);
                 onAck(message.uid);
                 processed = true;
             },
@@ -218,7 +217,17 @@ export class Imap {
                     return;
                 }
 
-                onNack(message.uid);
+                const attempts = this.stateStore.incrementAttempt(message.uid);
+                const maxAttempts = this.config.imap.maxAttempts;
+
+                if (attempts >= maxAttempts) {
+                    this.logger.warn(`Mail UID=${message.uid} exceeded max retries (${attempts}/${maxAttempts})`);
+                    onAck(message.uid);
+                } else {
+                    this.logger.warn(`Mail UID=${message.uid} failed (${attempts}/${maxAttempts})`);
+                    onNack(message.uid);
+                }
+
                 processed = true;
             },
         };

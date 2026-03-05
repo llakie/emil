@@ -45,6 +45,7 @@ export const configSchema = z.object({
         options: z.object({
             maxFetchBytes: z.number().int().positive().optional()
         }),
+        maxAttempts: z.number().int().positive().default(5),
         storage: z.object({
             filePath: z.string().default('/data/imap-state.json')
         }),

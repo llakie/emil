@@ -16,6 +16,7 @@
     "options": {
       "maxFetchBytes": 262144
     },
+    "maxAttempts": 3,
     "storage": {
       "filePath": "./data/imap-state.json"
     },

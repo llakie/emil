@@ -104,6 +104,7 @@ Top-level structure:
 | `startAt` | object | no | `{ "type": "epoch" }` | See section below |
 | `filter.criteria` | array | no | `["ALL"]` | Allowed values: `ALL`, `SEEN`, `UNSEEN` |
 | `options.maxFetchBytes` | number | optional | - | Limit fetched message source bytes |
+| `maxAttempts` | number | no | `5` | Max retries after `nack` before skipping the mail |
 | `storage.filePath` | string | no | `/data/imap-state.json` | Persisted state path |
 | `idlePollingIntervalMs` | number | no | `10000` | Poll interval for no-message state |
 
@@ -112,6 +113,12 @@ Top-level structure:
 - `{ "type": "epoch" }` -> start from 1970-01-01
 - `{ "type": "minDate", "value": "YYYY-MM-DD" }` -> start from explicit UTC date
 - `{ "type": "now" }` -> prime current day and only process newly arriving messages from then on
+
+Retry behavior:
+
+- Each `nack` increments a counter for the current message UID.
+- When `maxAttempts` is reached, the mail is skipped from future processing.
+- The current attempt and attempted Uid are persisted in the state file.
 
 ### 5.2 `runtime`
 

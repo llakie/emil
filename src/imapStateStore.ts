@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
 import { Logger } from './logger';
 import { Config, IMAP_START_AT_KEYS, ImapSearchCriterium, ImapStartAtKey } from './types';
@@ -9,7 +9,6 @@ export const SEEN_MASK = 1;
 export const UNSEEN_MASK = 2;
 
 const nonNegativeIntSchema = z.number().int().nonnegative();
-
 const persistedStateSchema = z
     .object({
         startAtKey: z.enum(IMAP_START_AT_KEYS).default('epoch'),
@@ -19,6 +18,8 @@ const persistedStateSchema = z
         rangeStartMs: nonNegativeIntSchema.nullable().default(null),
         rangeEndMs: nonNegativeIntSchema.nullable().default(null),
         processedUids: z.array(nonNegativeIntSchema).default([]),
+        currentAttemptUid: nonNegativeIntSchema.nullable().default(null),
+        currentAttempt: nonNegativeIntSchema.default(0),
         criteriaMask: nonNegativeIntSchema.default(0),
         uidValidity: z.string().nullable().default(null),
     })
@@ -47,7 +48,7 @@ export class ImapStateStore {
     private readonly filePath: string;
     private state: ImapPersistedState;
 
-    constructor(private config: Config) {
+    constructor(private readonly config: Config) {
         this.logger = new Logger();
 
         const dataDir = path.dirname(this.config.imap.storage.filePath);
@@ -101,6 +102,38 @@ export class ImapStateStore {
 
         this.persist();
 
+        return this.getState();
+    }
+
+    public incrementAttempt(uid: number): number {
+        const validatedUid = nonNegativeIntSchema.parse(uid);
+
+        const nextAttempt = this.state.currentAttemptUid === validatedUid ? this.state.currentAttempt + 1 : 1;
+
+        this.state = persistedStateSchema.parse({
+            ...this.state,
+            currentAttemptUid: validatedUid,
+            currentAttempt: nextAttempt,
+        });
+
+        this.persist();
+        return nextAttempt;
+    }
+
+    public resetAttempt(uid: number): ImapPersistedState {
+        const validatedUid = nonNegativeIntSchema.parse(uid);
+
+        if (this.state.currentAttemptUid !== validatedUid) {
+            return this.getState();
+        }
+
+        this.state = persistedStateSchema.parse({
+            ...this.state,
+            currentAttemptUid: null,
+            currentAttempt: 0,
+        });
+
+        this.persist();
         return this.getState();
     }
 
