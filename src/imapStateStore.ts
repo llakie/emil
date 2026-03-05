@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import { Logger } from './logger';
-import { Config, IMAP_START_AT_KEYS, ImapSearchCriterium, ImapStartAtKey } from './types';
-import { parseIsoDateToUtcMs, utcDayStartMs } from './util';
+import { Logger } from './logger.js';
+import { Config, IMAP_START_AT_KEYS, ImapSearchCriterium, ImapStartAtKey } from './types.js';
+import { parseIsoDateToUtcMs, utcDayStartMs } from './util.js';
 
 export const SEEN_MASK = 1;
 export const UNSEEN_MASK = 2;

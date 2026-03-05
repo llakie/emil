@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsx src/main.ts"
   },
+  "type": "module",
   "author": "",
   "license": "ISC",
   "dependencies": {
